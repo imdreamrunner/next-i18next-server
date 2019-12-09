@@ -1,4 +1,5 @@
-const express = require('express')
+const Koa = require('koa')
+const Router = require('koa-router')
 const next = require('next')
 const nextI18NextMiddleware = require('next-i18next/middleware').default
 
@@ -10,12 +11,26 @@ const handle = app.getRequestHandler();
 
 (async () => {
   await app.prepare()
-  const server = express()
+  const server = new Koa()
+  const router = new Router()
 
-  server.use(nextI18NextMiddleware(nextI18next))
+  // server.use(nextI18NextMiddleware(nextI18next))
+  nextI18NextMiddleware(nextI18next).forEach((middleware) => {
+    server.use(middleware)
+  })
 
-  server.get('*', (req, res) => handle(req, res))
+  // server.get('*', (req, res) => handle(req, res))
 
-  await server.listen(port)
-  console.log(`> Ready on http://localhost:${port}`) // eslint-disable-line no-console
+  router.all('*', async ctx => {
+    await handle(ctx.req, ctx.res)
+    ctx.respond = false
+  })
+
+  // await server.listen(port)
+  // console.log(`> Ready on http://localhost:${port}`) // eslint-disable-line no-console
+
+  server.use(router.routes())
+  server.listen(port, () => {
+    console.log(`> Ready on http://localhost:${port}`) // eslint-disable-line no-console
+  })
 })()

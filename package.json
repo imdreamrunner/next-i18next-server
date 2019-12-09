@@ -40,7 +40,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint && yarn test"
+      "pre-commit": "# yarn lint && yarn test"
     }
   },
   "bundlesize": [
@@ -96,6 +96,7 @@
     "typescript": "^3.5.3"
   },
   "dependencies": {
+    "@types/koa": "^2.11.0",
     "core-js": "^2",
     "detect-node": "^2.0.4",
     "hoist-non-react-statics": "^3.2.0",
@@ -104,6 +105,9 @@
     "i18next-express-middleware": "^1.5.0",
     "i18next-node-fs-backend": "^2.1.0",
     "i18next-xhr-backend": "^3.0.0",
+    "koa": "^2.11.0",
+    "koa-i18next-detector": "^0.7.2",
+    "koa-router": "^7.4.0",
     "path-match": "^1.2.4",
     "prop-types": "^15.6.2",
     "react-i18next": "^11.0.0",

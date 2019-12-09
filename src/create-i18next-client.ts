@@ -8,7 +8,12 @@ export default (config) => {
 
     if (isNode) {
       const i18nextNodeBackend = eval("require('i18next-node-fs-backend')")
-      const i18nextMiddleware = eval("require('i18next-express-middleware')")
+      // const i18nextMiddleware = eval("require('i18next-express-middleware')")
+      // eslint-disable-next-line no-console
+      console.log('__dirname', __dirname)
+      // eslint-disable-next-line no-console
+      console.log('process.cwd()', process.cwd())
+      const i18nextMiddleware = eval("require('/Users/xzhou/Projects/next-i18next/dist/commonjs/middlewares/koa-i18next-middleware')")
       i18n.use(i18nextNodeBackend)
       if (config.serverLanguageDetection) {
         const serverDetectors = new i18nextMiddleware.LanguageDetector()

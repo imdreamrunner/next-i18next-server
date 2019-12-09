@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
+import {ExtendableContext} from 'koa'
 import i18nextMiddleware from 'i18next-express-middleware'
+import koaI18nextMiddleware from './koa-i18next-middleware'
 import pathMatch from 'path-match'
 
 import {
@@ -29,9 +31,9 @@ export default function (nexti18next) {
     each request
   */
   if (!config.serverLanguageDetection) {
-    middleware.push((req: Request, _res: Response, next: NextFunction) => {
-      if (isI18nRoute(req)) {
-        req.lng = config.defaultLanguage
+    middleware.push((ctx: ExtendableContext, next: NextFunction) => {
+      if (isI18nRoute(ctx.req as any)) {
+        (ctx as any).lng = config.defaultLanguage
       }
       next()
     })
@@ -40,20 +42,25 @@ export default function (nexti18next) {
   /*
     This does the bulk of the i18next work
   */
-  middleware.push(i18nextMiddleware.handle(i18n))
+  // middleware.push(i18nextMiddleware.handle(i18n))
+
+  middleware.push(koaI18nextMiddleware.getHandler(i18n, {
+    ignoreRoutes,
+    locals: 'req',
+  }))
 
   /*
     This does the locale subpath work
   */
-  middleware.push((req: Request, res: Response, next: NextFunction) => {
-    if (isI18nRoute(req) && req.i18n) {
-      let currentLng = lngFromReq(req)
+  middleware.push(async (ctx: ExtendableContext, next: NextFunction) => {
+    if (isI18nRoute(ctx.req as any) && (ctx.req as any).i18n) {
+      let currentLng = lngFromReq(ctx.req as any)
       const currentLngSubpath = subpathFromLng(config, currentLng)
       const currentLngRequiresSubpath = subpathIsRequired(config, currentLng)
-      const currentLngSubpathIsPresent = subpathIsPresent(req.url, currentLngSubpath)
+      const currentLngSubpathIsPresent = subpathIsPresent(ctx.req.url, currentLngSubpath)
 
       const lngFromCurrentSubpath = allLanguages.find((l: string) =>
-        subpathIsPresent(req.url, subpathFromLng(config, l)))
+        subpathIsPresent(ctx.req.url, subpathFromLng(config, l)))
 
       if (lngFromCurrentSubpath !== undefined && lngFromCurrentSubpath !== currentLng) {
         /*
@@ -61,7 +68,7 @@ export default function (nexti18next) {
           match their language, give preference to
           the path, and change user language.
         */
-        req.i18n.changeLanguage(lngFromCurrentSubpath)
+        (ctx.req as any).i18n.changeLanguage(lngFromCurrentSubpath)
         currentLng = lngFromCurrentSubpath
 
       } else if (currentLngRequiresSubpath && !currentLngSubpathIsPresent) {
@@ -70,7 +77,7 @@ export default function (nexti18next) {
           If a language subpath is required and
           not present, prepend correct subpath
         */
-        return redirectWithoutCache(res, addSubpath(req.url, currentLngSubpath))
+        return redirectWithoutCache(ctx.res as any, addSubpath(ctx.req.url, currentLngSubpath))
 
       }
 
@@ -80,16 +87,16 @@ export default function (nexti18next) {
         render the correct route
       */
       if (typeof lngFromCurrentSubpath === 'string') {
-        const params = localeSubpathRoute(req.url)
+        const params = localeSubpathRoute(ctx.req.url)
         if (params !== false) {
           const { subpath } = params
-          req.query = { ...req.query, subpath, lng: currentLng }
-          req.url = removeSubpath(req.url, subpath)
+          ctx.request.query = { ...ctx.request.query, subpath, lng: currentLng }
+          ctx.req.url = removeSubpath(ctx.req.url, subpath)
         }
       }
     }
 
-    next()
+    await next()
   })
 
   return middleware
